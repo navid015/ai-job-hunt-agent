@@ -50,3 +50,18 @@ WORK_AUTHORIZATION_STATEMENT = (
 )
 
 TARGET_ROLE_FAMILY = "AI/ML (machine learning, applied AI, MLOps, data science, AI engineering)"
+
+# The candidate wants to target lower-seniority roles specifically -- not
+# necessarily what their resume's own seniority level implies -- because those
+# give a realistically higher chance of an interview call. This should bias
+# both which titles get searched for and how postings get scored/filtered.
+TARGET_SENIORITY_PREFERENCE = (
+    "The candidate is specifically targeting Junior, Associate, Entry-level, and "
+    "early-to-mid career roles (roughly 0-4 years of professional experience "
+    "expected by the posting). They are NOT targeting Senior, Staff, Lead, "
+    "Principal, Manager, or Director-level positions. Postings whose title or "
+    "description explicitly calls for Senior/Staff/Lead/Principal-level ownership, "
+    "or that explicitly require 5+ years of experience, should be treated as a poor "
+    "match even if the candidate's background could technically stretch to cover it."
+)
+

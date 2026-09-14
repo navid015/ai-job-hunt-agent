@@ -9,7 +9,12 @@ import json
 
 import anthropic
 
-from src.config import ANTHROPIC_API_KEY, CLAUDE_MODEL, WORK_AUTHORIZATION_STATEMENT
+from src.config import (
+    ANTHROPIC_API_KEY,
+    CLAUDE_MODEL,
+    WORK_AUTHORIZATION_STATEMENT,
+    TARGET_SENIORITY_PREFERENCE,
+)
 
 _PROFILE_TOOL = {
     "name": "record_candidate_profile",
@@ -43,12 +48,22 @@ _PROFILE_TOOL = {
             "target_titles": {
                 "type": "array",
                 "items": {"type": "string"},
-                "description": "8-12 job titles this candidate should search for, ordered best-fit first",
+                "description": (
+                    "8-12 job titles to search for, ordered best-fit first. Per the candidate's "
+                    "stated seniority preference, these must be Junior/Associate/Entry-level or "
+                    "early-to-mid career title variants (e.g. 'Junior Machine Learning Engineer', "
+                    "'Associate AI Engineer', 'ML Engineer I', 'AI Engineer (Early Career)') -- "
+                    "never Senior/Staff/Lead/Principal titles, even if the candidate's resume "
+                    "itself shows deeper experience."
+                ),
             },
             "search_keywords": {
                 "type": "array",
                 "items": {"type": "string"},
-                "description": "10-20 concise keywords/phrases for querying job search APIs",
+                "description": (
+                    "10-20 concise keywords/phrases for querying job search APIs, biased the same "
+                    "way as target_titles toward junior/associate/entry-level and early-career roles"
+                ),
             },
             "summary": {
                 "type": "string",
@@ -75,10 +90,13 @@ record_candidate_profile tool exactly once with your findings.
 Important fixed context about this candidate that is NOT in the resume text: \
 {WORK_AUTHORIZATION_STATEMENT}
 
+{TARGET_SENIORITY_PREFERENCE}
+
 Focus the analysis on what will matter for matching this person to real AI/ML job \
 postings: concrete skills and tools, seniority signals (scope, years, leadership), \
-domains of depth (not just tools listed once), and job titles that are a realistic, \
-strong match today -- not aspirational titles several levels up."""
+and domains of depth (not just tools listed once). The `seniority_level` field should \
+still honestly reflect what the resume shows -- but `target_titles` and `search_keywords` \
+must follow the candidate's stated targeting preference above, not the resume's own level."""
 
 
 def analyze_resume(resume_text: str) -> dict:

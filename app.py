@@ -38,19 +38,30 @@ def show_saved_profile():
     return profile_to_markdown(profile)
 
 
+def _truncate(text: str, max_len: int = 110) -> str:
+    text = text or ""
+    return text if len(text) <= max_len else text[: max_len - 1].rstrip() + "…"
+
+
 def jobs_to_rows(jobs: list[dict]) -> list[list[str]]:
-    return [
-        [
-            j.get("fit_score", ""),
-            j.get("title", ""),
-            j.get("company", ""),
-            j.get("location", ""),
-            j.get("source", ""),
-            j.get("fit_reason", ""),
-            j.get("url", ""),
-        ]
-        for j in jobs
-    ]
+    rows = []
+    for j in jobs:
+        company = j.get("company", "")
+        source = j.get("source", "")
+        company_display = f"{company} ({source})" if source else company
+        url = j.get("url", "")
+        apply_display = f"[Apply ↗]({url})" if url else ""
+        rows.append(
+            [
+                j.get("fit_score", ""),
+                j.get("title", ""),
+                company_display,
+                j.get("location", ""),
+                _truncate(j.get("fit_reason", "")),
+                apply_display,
+            ]
+        )
+    return rows
 
 
 def load_today_results():
@@ -78,7 +89,9 @@ def run_now():
     return jobs_to_rows(result["jobs"]), status
 
 
-COLUMNS = ["Fit", "Title", "Company", "Location", "Source", "Why", "Apply link"]
+COLUMNS = ["Fit", "Title", "Company", "Location", "Why", "Apply"]
+COLUMN_DATATYPES = ["number", "str", "str", "str", "str", "markdown"]
+COLUMN_WIDTHS = ["6%", "20%", "22%", "14%", "28%", "10%"]
 
 with gr.Blocks(title="AI Job Hunt Agent") as demo:
     gr.Markdown(
@@ -110,7 +123,13 @@ with gr.Blocks(title="AI Job Hunt Agent") as demo:
         run_now_btn = gr.Button("Run search now", variant="primary")
         refresh_results_btn = gr.Button("Refresh (show last saved results)")
         results_status = gr.Markdown()
-        results_table = gr.Dataframe(headers=COLUMNS, wrap=True, interactive=False)
+        results_table = gr.Dataframe(
+            headers=COLUMNS,
+            datatype=COLUMN_DATATYPES,
+            column_widths=COLUMN_WIDTHS,
+            wrap=True,
+            interactive=False,
+        )
 
         run_now_btn.click(run_now, outputs=[results_table, results_status])
         refresh_results_btn.click(load_today_results, outputs=[results_table, results_status])
