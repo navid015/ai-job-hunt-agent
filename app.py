@@ -9,7 +9,7 @@ import logging
 
 import gradio as gr
 
-from src.config import DAILY_JOB_COUNT, WORK_AUTHORIZATION_STATEMENT
+from src.config import DAILY_JOB_COUNT
 from src.history_store import load_profile, save_profile, load_latest_results
 from src.resume_analyzer import analyze_resume, profile_to_markdown
 from src.resume_parser import parse_resume
@@ -148,6 +148,7 @@ html, body, gradio-app, .app {
   color: var(--jr-ink) !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
   max-width: 960px !important;
+  margin: 0 auto !important;
 }
 
 /* Force one consistent look regardless of the visitor's system dark-mode
@@ -160,15 +161,7 @@ html, body, gradio-app, .app {
   margin: 0 0 2px 0 !important;
   color: var(--jr-ink) !important;
 }
-#jr-header p, #jr-header p * { color: var(--jr-muted) !important; font-size: 0.92rem; margin: 0; }
-#jr-note {
-  margin-top: 10px;
-  padding-left: 10px;
-  border-left: 2px solid var(--jr-accent);
-  font-size: 0.8rem;
-  color: var(--jr-muted);
-  line-height: 1.4;
-}
+#jr-header { margin-bottom: 6px; }
 
 .tab-nav button {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
@@ -254,13 +247,9 @@ button.secondary {
 .jr-empty { color: var(--jr-muted); font-size: 0.88rem; padding: 24px 4px; text-align: center; }
 """
 
-with gr.Blocks(title="Job Radar") as demo:
+with gr.Blocks(title="Navid's Job Searcher Agent") as demo:
     with gr.Column(elem_id="jr-header"):
-        gr.Markdown("# job radar")
-        gr.Markdown("resume in, ranked matches out. runs itself at 5pm, every day, no repeats.")
-        gr.Markdown(
-            f'<div id="jr-note">note: {WORK_AUTHORIZATION_STATEMENT}</div>'
-        )
+        gr.Markdown("# Navid's Job Searcher Agent")
 
     with gr.Tab("resume"):
         resume_file = gr.File(
