@@ -15,6 +15,8 @@ from src.config import (
     CLAUDE_MODEL,
     WORK_AUTHORIZATION_STATEMENT,
     TARGET_SENIORITY_PREFERENCE,
+    TARGET_ROLE_FAMILY,
+    EXPERIENCE_EVALUATION_GUIDANCE,
 )
 
 log = logging.getLogger(__name__)
@@ -79,11 +81,16 @@ Candidate profile:
 - Years of experience: {profile.get('years_experience')}
 - Core skills: {', '.join(profile.get('core_skills', []))}
 - Domains: {', '.join(profile.get('domains', []))}
+- Notable achievements: {'; '.join(profile.get('notable_achievements', []))}
 - Summary: {profile.get('summary')}
 
 Fixed candidate fact: {WORK_AUTHORIZATION_STATEMENT}
 
 Fixed candidate targeting preference: {TARGET_SENIORITY_PREFERENCE}
+
+Target role family: {TARGET_ROLE_FAMILY}
+
+{EXPERIENCE_EVALUATION_GUIDANCE}
 
 Scoring rubric -- use the full range, don't cluster everything in the middle:
 - 80-100: Genuine strong match at the candidate's target level. The posting's core requirements \

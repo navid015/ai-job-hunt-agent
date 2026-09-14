@@ -14,6 +14,8 @@ from src.config import (
     CLAUDE_MODEL,
     WORK_AUTHORIZATION_STATEMENT,
     TARGET_SENIORITY_PREFERENCE,
+    TARGET_ROLE_FAMILY,
+    EXPERIENCE_EVALUATION_GUIDANCE,
 )
 
 _PROFILE_TOOL = {
@@ -24,7 +26,14 @@ _PROFILE_TOOL = {
         "properties": {
             "candidate_name": {"type": "string"},
             "current_title": {"type": "string"},
-            "years_experience": {"type": "number", "description": "Total professional experience, in years"},
+            "years_experience": {
+                "type": "number",
+                "description": (
+                    "Total applied hands-on experience in years, counting both paid roles and "
+                    "serious, production-grade self-directed/independent project work -- not just "
+                    "paid tenure"
+                ),
+            },
             "seniority_level": {
                 "type": "string",
                 "enum": ["intern", "entry", "mid", "senior", "staff/lead", "manager/director"],
@@ -92,11 +101,16 @@ Important fixed context about this candidate that is NOT in the resume text: \
 
 {TARGET_SENIORITY_PREFERENCE}
 
+Target role family: {TARGET_ROLE_FAMILY}
+
+{EXPERIENCE_EVALUATION_GUIDANCE}
+
 Focus the analysis on what will matter for matching this person to real AI/ML job \
 postings: concrete skills and tools, seniority signals (scope, years, leadership), \
 and domains of depth (not just tools listed once). The `seniority_level` field should \
 still honestly reflect what the resume shows -- but `target_titles` and `search_keywords` \
-must follow the candidate's stated targeting preference above, not the resume's own level."""
+must follow the candidate's stated targeting preference and target role family above, not \
+just whatever job title happens to appear on the resume itself."""
 
 
 def analyze_resume(resume_text: str) -> dict:

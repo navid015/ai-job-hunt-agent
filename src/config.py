@@ -49,7 +49,30 @@ WORK_AUTHORIZATION_STATEMENT = (
     "security clearance restricted to citizens should be excluded from recommendations."
 )
 
-TARGET_ROLE_FAMILY = "AI/ML (machine learning, applied AI, MLOps, data science, AI engineering)"
+TARGET_ROLE_FAMILY = (
+    "AI/ML engineering with an emphasis on agentic systems, LLM/generative AI "
+    "engineering, and retrieval-augmented generation (RAG) -- e.g. AI Engineer, "
+    "Applied AI Engineer, LLM Engineer, Generative AI Engineer, Machine Learning "
+    "Engineer, AI/ML Engineer, Agentic AI Engineer -- rather than classical data "
+    "science or generic software engineering, unless a posting explicitly involves "
+    "building with LLMs, agents, or retrieval systems"
+)
+
+# Many strong AI/ML candidates -- especially those early in their career -- have
+# rigorous, production-grade self-directed or independent project work (deployed
+# systems, quantitative evaluation benchmarks, real infrastructure) alongside a
+# comparatively short paid-employment history. This guidance keeps both the
+# resume analysis and the job scoring from undervaluing that.
+EXPERIENCE_EVALUATION_GUIDANCE = (
+    "Treat rigorous, production-grade self-directed or independent project work "
+    "(deployed applications, quantitative evaluation benchmarks, real infrastructure) "
+    "as legitimate applied experience -- do not discount it just because it was "
+    "unpaid or self-initiated. Graduate degrees and relevant certifications can also "
+    "offset a posting's stated years-of-experience expectation: a candidate with a "
+    "relevant Master's degree, a strong certification, and deep project experience "
+    "can be a genuine fit for a posting asking for '1-3 years' even with less formal "
+    "paid tenure than that, so don't penalize on raw years alone."
+)
 
 # The candidate wants to target lower-seniority roles specifically -- not
 # necessarily what their resume's own seniority level implies -- because those
