@@ -2,6 +2,13 @@
 
 import os
 
+from dotenv import load_dotenv
+
+# Local/dev convenience: loads a .env file into os.environ if present. On
+# Render, HF Spaces, and GitHub Actions the real secrets are already injected
+# into the environment directly, so this is a no-op there.
+load_dotenv()
+
 # --- Anthropic ---
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-5")
