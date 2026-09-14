@@ -117,4 +117,8 @@ with gr.Blocks(title="AI Job Hunt Agent") as demo:
         demo.load(load_today_results, outputs=[results_table, results_status])
 
 if __name__ == "__main__":
-    demo.launch()
+    import os
+
+    # Render (and most PaaS free tiers) inject $PORT and expect the app to
+    # bind 0.0.0.0 on it; default to Gradio's usual port for local runs.
+    demo.launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", 7860)))

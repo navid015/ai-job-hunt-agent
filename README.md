@@ -1,16 +1,3 @@
----
-title: AI Job Hunt Agent
-emoji: 🎯
-colorFrom: blue
-colorTo: green
-sdk: gradio
-sdk_version: 5.9.1
-app_file: app.py
-pinned: false
-license: mit
-short_description: Daily AI/ML job recommendations tailored to your resume
----
-
 # AI Job Hunt Agent
 
 An agentic job-search assistant for AI/ML roles in the US. Upload your resume
@@ -49,13 +36,13 @@ You'll need free/low-cost API keys for these (see setup below).
 
 ```
                      ┌─────────────────────────┐
-   Resume upload ──▶ │   Gradio app (app.py)   │
+   Resume upload ──▶ │   Gradio app (app.py)   │  hosted on Render (free web service)
                      └──────────┬──────────────┘
                                 │ analyze + save profile
                                 ▼
                      ┌─────────────────────────┐
-                     │ HF Hub dataset repo      │  ◀── shared persistent storage
-                     │ (resume_profile.json,    │
+                     │ HF Hub dataset repo      │  ◀── shared persistent storage only
+                     │ (resume_profile.json,    │      (no app hosted on HF)
                      │  seen_jobs.json,         │
                      │  latest_results.json)    │
                      └──────────┬──────────────┘
@@ -74,11 +61,13 @@ You'll need free/low-cost API keys for these (see setup below).
                                                  restricted postings)
 ```
 
-The Gradio Space (interactive) and the GitHub Actions cron job (scheduled,
-headless) both read/write the **same** state through a private Hugging Face
-Hub dataset repo, since HF Spaces has no built-in cron and free-tier Spaces
-sleep when idle — GitHub Actions runs reliably regardless of whether the Space
-is awake.
+The Render web service (interactive) and the GitHub Actions cron job
+(scheduled, headless) both read/write the **same** state through a private
+Hugging Face Hub dataset repo. Hugging Face Spaces is used purely as shared
+storage here, not as the app host: HF now requires a paid PRO subscription to
+run a CPU-backed Gradio Space (its free "ZeroGPU" Spaces refuse to start
+without genuine GPU-decorated code, which this app has no real use for), so
+the interactive UI is hosted on Render's free tier instead.
 
 ## Files
 
@@ -94,6 +83,7 @@ is awake.
 | `src/pipeline.py` | Orchestrates one full daily run |
 | `scripts/run_daily_job.py` | Entry point the GitHub Action runs |
 | `.github/workflows/daily_job_search.yml` | Cron schedule (5pm) + manual trigger |
+| `render.yaml` | Render Blueprint describing the free web service |
 
 ## Setup
 
@@ -120,25 +110,37 @@ python app.py
 Open the printed `http://127.0.0.1:7860` URL, upload your resume, then click
 **"Run search now"** to test the full pipeline before relying on the schedule.
 
-### 3. Deploy the Gradio app to Hugging Face Spaces
+### 3. Deploy the Gradio app to Render (free)
 
-1. Create a new Space at https://huggingface.co/new-space (SDK: **Gradio**, CPU basic is enough).
-2. Push this project's files to the Space repo (`git push`, same as any HF Space).
-3. In the Space's **Settings → Variables and secrets**, add:
-   `ANTHROPIC_API_KEY`, `RAPIDAPI_KEY`, `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`,
+1. Push this repo to GitHub (see below) if you haven't already.
+2. Sign in at https://render.com (free, no credit card required) and connect your GitHub account.
+3. **New → Web Service** → pick this repo. Render auto-detects `render.yaml`
+   in this repo, or if you create the service manually, set:
+   - Runtime: **Python 3**
+   - Build command: `pip install -r requirements.txt`
+   - Start command: `python app.py`
+   - Plan: **Free**
+4. Add the 6 environment variables in the Render dashboard (**Environment**
+   tab): `ANTHROPIC_API_KEY`, `RAPIDAPI_KEY`, `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`,
    `HF_TOKEN`, `HF_DATASET_REPO`.
-4. Open the Space, upload your resume once under **"1. Upload resume"**.
+5. Deploy. Render gives you a `https://<service-name>.onrender.com` URL — open
+   it and upload your resume once under **"1. Upload resume"**.
+
+> Free web services on Render spin down after 15 minutes of inactivity and
+> take ~30-50 seconds to wake back up on the next visit. That only affects the
+> interactive UI — the daily job search itself runs on GitHub Actions
+> regardless of whether the Render service is awake.
 
 ### 4. Set up the daily 5pm schedule (GitHub Actions)
 
-Push this same project to a GitHub repo, then in **Settings → Secrets and
-variables → Actions**, add the same six secrets as above. The workflow in
+In your GitHub repo, go to **Settings → Secrets and variables → Actions** and
+add the same six secrets as above. The workflow in
 `.github/workflows/daily_job_search.yml` will then run automatically at 5pm
 Central time and update `latest_results.json` in your HF dataset repo, which
-the Space's **"3. Today's recommended jobs"** tab reads on every page load.
+the Render app's **"3. Today's recommended jobs"** tab reads on every page load.
 
 You can also trigger it manually any time from the repo's **Actions** tab
-(`workflow_dispatch`), or from the Space's **"Run search now"** button.
+(`workflow_dispatch`), or from the app's **"Run search now"** button.
 
 > The cron is set to 22:00 UTC (5pm US Central Daylight Time). Because GitHub
 > Actions cron doesn't auto-adjust for daylight saving, shift it to `0 23 * * *`
@@ -153,11 +155,11 @@ Mostly yes, with two things to know:
 | **Anthropic API** | One-time ~$5 trial credit for new accounts; no ongoing free monthly quota | Enough for a while (one resume analysis + small daily scoring batches), but you'll eventually add a payment method — usage here is cheap (a few dollars/month), not free forever |
 | **JSearch (RapidAPI)** | 200 requests/month on the free Basic plan | Tight. 1 query = 1 request, so `MAX_SEARCH_QUERIES_PER_RUN` in `src/config.py` defaults to **6**, keeping a daily cron run at ~180 requests/month. Don't raise it unless you upgrade the plan |
 | **Adzuna** | ~1,000 requests/month, self-serve | Comfortable headroom at 6 queries/day |
-| **Hugging Face Spaces** | Free CPU Basic Space | Fine — this project doesn't need GPU. Free Spaces sleep when idle, which is exactly why the daily run uses GitHub Actions instead of relying on the Space being awake |
-| **HF Hub dataset repo (storage)** | Free | No issue at this file size |
+| **Render (app hosting)** | Free web service, 750 instance-hours/month, no credit card | Fine for a personal tool. Spins down after 15 min idle, ~30-50s cold start on the next visit — doesn't affect the daily scheduled search, only the interactive UI |
+| **Hugging Face Hub (dataset storage only)** | Free | No issue at this file size. Note: HF now requires a **paid PRO plan** to host a CPU-backed Gradio *Space* — its free "ZeroGPU" Spaces won't start without real GPU-decorated code, which is why this project uses HF only for storage and Render for the app itself |
 | **GitHub Actions** | Unlimited minutes on public repos, 2,000 min/month free on private repos | A daily run takes ~1-2 minutes — nowhere near the limit either way |
 
-So: free tiers work end-to-end, JSearch's 200/month cap is the one you could hit if you increase `MAX_SEARCH_QUERIES_PER_RUN`, and the Anthropic side moves from "free trial credit" to "cheap pay-as-you-go" once that credit runs out.
+So: free tiers work end-to-end. JSearch's 200/month cap is the one you could hit if you increase `MAX_SEARCH_QUERIES_PER_RUN`, and the Anthropic side moves from "free trial credit" to "cheap pay-as-you-go" once that credit runs out.
 
 ## Notes and limitations
 
