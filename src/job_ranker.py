@@ -138,12 +138,25 @@ def rank_jobs(profile: dict, jobs: list[dict], top_n: int) -> list[dict]:
         return []
 
     all_scores: dict[str, dict] = {}
+    batch_count = 0
+    failed_batches = 0
+    last_error: Exception | None = None
     for i in range(0, len(jobs), _BATCH_SIZE):
         batch = jobs[i : i + _BATCH_SIZE]
+        batch_count += 1
         try:
             all_scores.update(_score_batch(profile, batch))
         except Exception as e:
             log.warning("Scoring batch failed (%s), skipping %d jobs", e, len(batch))
+            failed_batches += 1
+            last_error = e
+
+    if failed_batches == batch_count and batch_count > 0:
+        raise RuntimeError(
+            f"All {batch_count} scoring batch(es) failed ({last_error}); "
+            "no jobs were kept. This is almost certainly transient (a timeout or "
+            "network issue calling Claude) -- try running the search again."
+        )
 
     scored_jobs = []
     for job in jobs:
