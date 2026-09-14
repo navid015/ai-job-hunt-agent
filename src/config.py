@@ -17,6 +17,7 @@ CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-5")
 RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY", "")  # JSearch (aggregates LinkedIn/Indeed/Glassdoor/ZipRecruiter/Monster)
 ADZUNA_APP_ID = os.environ.get("ADZUNA_APP_ID", "")
 ADZUNA_APP_KEY = os.environ.get("ADZUNA_APP_KEY", "")
+JOOBLE_API_KEY = os.environ.get("JOOBLE_API_KEY", "")  # https://jooble.org/api/about
 
 # --- Persistence (Hugging Face Hub dataset repo used as shared storage between
 # the Gradio Space and the GitHub Actions scheduled job) ---
@@ -41,6 +42,11 @@ JOB_SEARCH_COUNTRY = "us"
 # cron job at ~180 requests/month, safely under that cap with room for manual
 # "run now" clicks too. Raise this if you're on a paid JSearch plan.
 MAX_SEARCH_QUERIES_PER_RUN = int(os.environ.get("MAX_SEARCH_QUERIES_PER_RUN", "6"))
+
+# Jooble's free key is capped at 500 requests total -- LIFETIME, not monthly.
+# At 1 query/run that's roughly 1.5 years of daily runs; raise this only if
+# you're deliberately willing to burn through the lifetime quota faster.
+MAX_JOOBLE_QUERIES_PER_RUN = int(os.environ.get("MAX_JOOBLE_QUERIES_PER_RUN", "1"))
 
 # --- Fixed candidate facts that must never be re-derived or forgotten ---
 # The user holds a US Green Card (lawful permanent resident): no visa sponsorship

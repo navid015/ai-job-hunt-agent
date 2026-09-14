@@ -8,8 +8,12 @@ aggregator APIs that legally syndicate listings from those same boards:
   Monster, and many company career pages.
 - Adzuna: an independent job-search API covering thousands of US employers and
   boards, used here as a second, complementary source.
+- Jooble: a separate, independent job aggregator (not RapidAPI-based), used as
+  a light supplementary third source. Its free key is capped at 500 requests
+  total for the account's lifetime (not monthly), so it's queried far more
+  sparingly than the other two -- see MAX_JOOBLE_QUERIES_PER_RUN.
 
-Both return a normalized list of job dicts:
+All three return a normalized list of job dicts:
     {id, title, company, location, description, url, posted_date, source, remote}
 """
 
@@ -18,12 +22,20 @@ import logging
 
 import requests
 
-from src.config import RAPIDAPI_KEY, ADZUNA_APP_ID, ADZUNA_APP_KEY, JOB_SEARCH_COUNTRY
+from src.config import (
+    RAPIDAPI_KEY,
+    ADZUNA_APP_ID,
+    ADZUNA_APP_KEY,
+    JOOBLE_API_KEY,
+    JOB_SEARCH_COUNTRY,
+    MAX_JOOBLE_QUERIES_PER_RUN,
+)
 
 log = logging.getLogger(__name__)
 
 JSEARCH_URL = "https://jsearch.p.rapidapi.com/search"
 ADZUNA_URL_TEMPLATE = "https://api.adzuna.com/v1/api/jobs/{country}/search/{page}"
+JOOBLE_URL_TEMPLATE = "https://jooble.org/api/{key}"
 
 
 def _job_id(source: str, title: str, company: str, location: str, native_id: str = "") -> str:
@@ -127,13 +139,56 @@ def search_adzuna(query: str, results_per_page: int = 20) -> list[dict]:
     return jobs
 
 
+def search_jooble(query: str, location: str = "United States") -> list[dict]:
+    """Query Jooble for a single search phrase. POST with a JSON body, per their REST API."""
+    if not JOOBLE_API_KEY:
+        log.info("JOOBLE_API_KEY not set, skipping Jooble.")
+        return []
+
+    url = JOOBLE_URL_TEMPLATE.format(key=JOOBLE_API_KEY)
+    payload = {"keywords": query, "location": location}
+
+    try:
+        resp = requests.post(url, json=payload, timeout=20)
+        resp.raise_for_status()
+        data = resp.json()
+    except requests.RequestException as e:
+        log.warning("Jooble request failed for query=%r: %s", query, e)
+        return []
+
+    jobs = []
+    for item in data.get("jobs", []):
+        title = item.get("title", "")
+        company = item.get("company", "")
+        job_location = item.get("location", "") or "United States"
+        jobs.append(
+            {
+                "id": _job_id("jooble", title, company, job_location, str(item.get("id", ""))),
+                "title": title,
+                "company": company,
+                "location": job_location,
+                "description": (item.get("snippet") or "")[:4000],
+                "url": item.get("link", ""),
+                "posted_date": item.get("updated", ""),
+                "source": "Jooble",
+                "remote": "remote" in (title + (item.get("snippet") or "")).lower(),
+            }
+        )
+    return jobs
+
+
 def search_all_sources(queries: list[str], num_pages: int = 1) -> list[dict]:
     """Run every query against every configured source and dedupe by job id."""
     seen_ids = set()
     all_jobs: list[dict] = []
+    jooble_queries = set(queries[:MAX_JOOBLE_QUERIES_PER_RUN])
 
     for query in queries:
-        for job in search_jsearch(query, num_pages=num_pages) + search_adzuna(query):
+        results = search_jsearch(query, num_pages=num_pages) + search_adzuna(query)
+        if query in jooble_queries:
+            results += search_jooble(query)
+
+        for job in results:
             if job["id"] in seen_ids or not job["title"] or not job["company"]:
                 continue
             seen_ids.add(job["id"])

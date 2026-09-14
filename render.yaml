@@ -14,6 +14,8 @@ services:
         sync: false
       - key: ADZUNA_APP_KEY
         sync: false
+      - key: JOOBLE_API_KEY
+        sync: false
       - key: HF_TOKEN
         sync: false
       - key: HF_DATASET_REPO

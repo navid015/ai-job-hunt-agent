@@ -29,8 +29,20 @@ listings**:
   and company career pages.
 - **[Adzuna](https://developer.adzuna.com/)** — an independent job API, used
   as a second source.
+- **[Jooble](https://jooble.org/api/about)** — a third, independent aggregator
+  used as a light supplement. Its free key is capped at 500 requests total for
+  the account's *lifetime* (not monthly), so it's only queried once per run by
+  default (`MAX_JOOBLE_QUERIES_PER_RUN` in `src/config.py`).
 
 You'll need free/low-cost API keys for these (see setup below).
+
+> **Known issue (as of testing in Sept 2026):** JSearch's `/search` endpoint has
+> been returning a 404 from RapidAPI's own gateway — confirmed with two different
+> API keys, and other JSearch endpoints on the same keys work fine, so this looks
+> like a provider-side outage/misconfiguration rather than anything wrong on the
+> caller's end. If your results are Adzuna/Jooble-only, this is likely why — check
+> https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch/playground yourself, and
+> if it 404s there too, contact support@openwebninja.com.
 
 ## Architecture
 
@@ -77,7 +89,7 @@ the interactive UI is hosted on Render's free tier instead.
 | `src/config.py` | Env vars, model choice, and the fixed Green-Card/no-sponsorship fact |
 | `src/resume_parser.py` | Extracts text from PDF/DOCX/TXT resumes |
 | `src/resume_analyzer.py` | Claude call that deeply analyzes the resume into a structured profile |
-| `src/job_sources.py` | JSearch + Adzuna API clients, normalized job schema |
+| `src/job_sources.py` | JSearch + Adzuna + Jooble API clients, normalized job schema |
 | `src/job_ranker.py` | Claude call that scores each job's real interview-chance fit |
 | `src/history_store.py` | Shared persistence (HF Hub dataset repo, with local fallback) + dedupe logic |
 | `src/pipeline.py` | Orchestrates one full daily run |
@@ -93,6 +105,8 @@ the interactive UI is hosted on Render's free tier instead.
 - **JSearch (RapidAPI)**: subscribe to the free tier at
   https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch
 - **Adzuna**: register at https://developer.adzuna.com/ for an `app_id` + `app_key`
+- **Jooble** (optional): request a key at https://jooble.org/api/about — this is
+  a manual review, not instant, so expect a delay before you get the key by email
 - **Hugging Face token**: https://huggingface.co/settings/tokens (needs **write** access)
 - **Hugging Face dataset repo**: create a private dataset at
   https://huggingface.co/new-dataset, e.g. `your-username/job-hunt-agent-data`
@@ -120,9 +134,9 @@ Open the printed `http://127.0.0.1:7860` URL, upload your resume, then click
    - Build command: `pip install -r requirements.txt`
    - Start command: `python app.py`
    - Plan: **Free**
-4. Add the 6 environment variables in the Render dashboard (**Environment**
+4. Add the environment variables in the Render dashboard (**Environment**
    tab): `ANTHROPIC_API_KEY`, `RAPIDAPI_KEY`, `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`,
-   `HF_TOKEN`, `HF_DATASET_REPO`.
+   `JOOBLE_API_KEY` (optional), `HF_TOKEN`, `HF_DATASET_REPO`.
 5. Deploy. Render gives you a `https://<service-name>.onrender.com` URL — open
    it and upload your resume once under **"1. Upload resume"**.
 
@@ -134,7 +148,7 @@ Open the printed `http://127.0.0.1:7860` URL, upload your resume, then click
 ### 4. Set up the daily 5pm schedule (GitHub Actions)
 
 In your GitHub repo, go to **Settings → Secrets and variables → Actions** and
-add the same six secrets as above. The workflow in
+add the same secrets as above. The workflow in
 `.github/workflows/daily_job_search.yml` will then run automatically at 5pm
 Central time and update `latest_results.json` in your HF dataset repo, which
 the Render app's **"3. Today's recommended jobs"** tab reads on every page load.
@@ -155,6 +169,7 @@ Mostly yes, with two things to know:
 | **Anthropic API** | One-time ~$5 trial credit for new accounts; no ongoing free monthly quota | Enough for a while (one resume analysis + small daily scoring batches), but you'll eventually add a payment method — usage here is cheap (a few dollars/month), not free forever |
 | **JSearch (RapidAPI)** | 200 requests/month on the free Basic plan | Tight. 1 query = 1 request, so `MAX_SEARCH_QUERIES_PER_RUN` in `src/config.py` defaults to **6**, keeping a daily cron run at ~180 requests/month. Don't raise it unless you upgrade the plan |
 | **Adzuna** | ~1,000 requests/month, self-serve | Comfortable headroom at 6 queries/day |
+| **Jooble** | 500 requests total, for the account's *lifetime* (not monthly) | `MAX_JOOBLE_QUERIES_PER_RUN` defaults to **1**, so daily runs last roughly 1.5 years on the free key. Optional -- only a light supplement |
 | **Render (app hosting)** | Free web service, 750 instance-hours/month, no credit card | Fine for a personal tool. Spins down after 15 min idle, ~30-50s cold start on the next visit — doesn't affect the daily scheduled search, only the interactive UI |
 | **Hugging Face Hub (dataset storage only)** | Free | No issue at this file size. Note: HF now requires a **paid PRO plan** to host a CPU-backed Gradio *Space* — its free "ZeroGPU" Spaces won't start without real GPU-decorated code, which is why this project uses HF only for storage and Render for the app itself |
 | **GitHub Actions** | Unlimited minutes on public repos, 2,000 min/month free on private repos | A daily run takes ~1-2 minutes — nowhere near the limit either way |
